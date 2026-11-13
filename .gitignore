@@ -1,0 +1,17 @@
+# Secrets / local config
+.env
+.streamlit/secrets.toml
+
+# Local database
+*.db
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Tooling
+.ruff_cache/
+.pytest_cache/
+desktop.ini

@@ -6,8 +6,8 @@ A personal budgeting app built with [Streamlit](https://streamlit.io) and
 You import bank statements and other financial files, and the app turns them into transactions
 and shows where your money goes.
 
-> **Status:** early development. Login and the monthly dashboard work. File import and
-> analytics are placeholder pages for now.
+> **Status:** early development. Login, CSV/Excel import, and the monthly dashboard work.
+> Analytics is a placeholder page for now.
 
 ## Features
 
@@ -15,8 +15,23 @@ and shows where your money goes.
 |-----------|---------------------------------------------------------------------------|---------|
 | Log in    | Register an account and log in. Each user sees only their own data        | Working |
 | Home      | Income, spending, and net for the current month, plus recent transactions | Working |
-| Import    | Upload a CSV or Excel file and turn it into transactions                  | Planned |
+| Import    | Upload a CSV or Excel file, preview it, and save it as transactions       | Working |
 | Analytics | Charts and spending trends over time                                      | Planned |
+
+### Import file format
+
+The file needs these columns (in any order, upper or lower case):
+
+| Column             | Example            | Notes                                                       |
+|--------------------|--------------------|-------------------------------------------------------------|
+| `DATE`             | `11/19/2026`       | Also accepts `11/19/26` and `2026-11-19`                    |
+| `DESCRIPTION`      | `ZELLE FROM ...`   |                                                             |
+| `AMOUNT`           | `446.52`           | `$` and `,` are fine. The sign is ignored if a type is given |
+| `TRANSACTION_TYPE` | `DEPOSIT`          | `DEPOSIT` or `CREDIT` is money in. Anything else is an expense. If blank, a negative amount means an expense |
+
+Rows that can't be read are listed with the reason and skipped. Transactions already imported
+are skipped too, so uploading the same file twice is safe. To treat more type words as money in,
+add them to `DEPOSIT_TYPES` in `budgeapp/pipeline/transform.py`.
 
 ## Requirements
 
@@ -64,7 +79,7 @@ app.py                  Streamlit entry point: page config, navigation, one-time
 app_pages/              One file per page (UI only)
   login.py              Log in and register
   home.py               Monthly dashboard
-  upload.py             File import (placeholder)
+  upload.py             CSV/Excel import with preview
   analytics.py          Charts and trends (placeholder)
 budgeapp/               Backend package (no Streamlit code)
   db/
@@ -72,10 +87,10 @@ budgeapp/               Backend package (no Streamlit code)
     connection.py       Engine, get_session(), init_db(); SQLite by default, or DATABASE_URL
     repositories.py     UserRepo (register, log in) and TransactionRepo query helpers
   auth.py               Password hashing
-  pipeline/             Import pipeline (in progress)
-    extract.py          Read raw rows from uploaded files
-    transform.py        Clean and categorize rows
-    load.py             Save records to the database
+  pipeline/             Import pipeline
+    extract.py          Read a CSV or Excel file
+    transform.py        Clean rows: parse dates, amounts, and types; report bad rows
+    load.py             Save records to the database, skipping ones already imported
   logging_config.py     Log to the terminal and logs/budgeapp.log
 tests/                  pytest suite (runs against in-memory SQLite)
 ```

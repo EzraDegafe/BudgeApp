@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 
 import pandas as pd
@@ -6,24 +7,34 @@ import streamlit as st
 from budgeapp.db.connection import get_session
 from budgeapp.db.repositories import TransactionRepo
 
+logger = logging.getLogger("budgeapp.pages.home")
+
 st.title("Budget dashboard")
 st.caption("A quick look at this month.")
 
 today = date.today()
 month_start = today.replace(day=1)
+user_id = st.session_state.user_id
 
-with get_session() as session:
-    txns = TransactionRepo(session, st.session_state.user_id).list_between(month_start, today)
-    rows = [
-        {
-            "Date": t.txn_date,
-            "Name": t.name,
-            "Type": t.txn_type,
-            "Amount": t.amount_cents / 100,
-            "Recurring": t.is_recurring,
-        }
-        for t in txns
-    ]
+try:
+    with get_session() as session:
+        txns = TransactionRepo(session, user_id).list_between(month_start, today)
+except Exception:
+    logger.exception("Couldn't load this month's transactions for user %s", user_id)
+    st.error("Couldn't load your transactions. See logs/budgeapp.log for details.")
+    st.stop()
+
+logger.info("Dashboard for user %s: %d transactions this month", user_id, len(txns))
+rows = [
+    {
+        "Date": t.txn_date,
+        "Name": t.name,
+        "Type": t.txn_type,
+        "Amount": t.amount_cents / 100,
+        "Recurring": t.is_recurring,
+    }
+    for t in txns
+]
 
 df = pd.DataFrame(rows, columns=["Date", "Name", "Type", "Amount", "Recurring"])
 

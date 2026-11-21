@@ -76,6 +76,7 @@ budgeapp/               Backend package (no Streamlit code)
     extract.py          Read raw rows from uploaded files
     transform.py        Clean and categorize rows
     load.py             Save records to the database
+  logging_config.py     Log to the terminal and logs/budgeapp.log
 tests/                  pytest suite (runs against in-memory SQLite)
 ```
 
@@ -113,3 +114,10 @@ ruff format .       # format
 ```
 
 The tests use an in-memory SQLite database, so they never touch your real data.
+
+### Logs
+
+The app logs what it's doing (startup, database setup, logins, page loads, and errors with
+full tracebacks) to the terminal and to `logs/budgeapp.log`. Add `LOG_LEVEL=DEBUG` to `.env`
+for more detail, such as every transaction added and every page opened. Passwords are never
+logged.

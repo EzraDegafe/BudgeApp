@@ -1,6 +1,14 @@
+import logging
+
 import streamlit as st
 
-from budgeapp.db.connection import init_db
+from budgeapp.logging_config import setup_logging
+
+setup_logging()  # before the DB import below, so its startup messages are logged too
+
+from budgeapp.db.connection import init_db  # noqa: E402
+
+logger = logging.getLogger("budgeapp.app")
 
 st.set_page_config(page_title="Budget app", page_icon="💰", layout="wide")
 
@@ -8,6 +16,7 @@ st.set_page_config(page_title="Budget app", page_icon="💰", layout="wide")
 @st.cache_resource
 def _setup_db() -> None:
     # Runs once per server process, not on every rerun.
+    logger.info("App starting: setting up the database")
     init_db()
 
 
@@ -25,8 +34,10 @@ else:
     with st.sidebar:
         st.write(f"Logged in as **{st.session_state.username}**")
         if st.button("Log out", icon=":material/logout:"):
+            logger.info("User %r logged out", st.session_state.username)
             st.session_state.clear()
             st.rerun()
 
 nav = st.navigation(pages)
+logger.debug("Showing page %r", nav.title)
 nav.run()

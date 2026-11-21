@@ -13,7 +13,7 @@ today = date.today()
 month_start = today.replace(day=1)
 
 with get_session() as session:
-    txns = TransactionRepo(session).list_between(month_start, today)
+    txns = TransactionRepo(session, st.session_state.user_id).list_between(month_start, today)
     rows = [
         {
             "Date": t.txn_date,

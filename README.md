@@ -1,7 +1,7 @@
 # BudgeApp
 
 A personal budgeting app built with [Streamlit](https://streamlit.io) and
-[SQLAlchemy](https://www.sqlalchemy.org), backed by PostgreSQL.
+[SQLAlchemy](https://www.sqlalchemy.org), backed by SQLite (PostgreSQL also works).
 
 You import bank statements and other financial files, and the app turns them into transactions
 and shows where your money goes.
@@ -11,20 +11,18 @@ and shows where your money goes.
 
 ## Features
 
-| Page      | What it does                                                          | Status      |
-|-----------|-----------------------------------------------------------------------|-------------|
-| Log in    | Register an account and log in. Each user sees only their own data    | Working     |
-| Home      | Income, spending, and net for the current month, plus recent transactions | Working     |
-| Import    | Upload CSV, Excel, PDF, or image statements and turn them into transactions | Planned     |
-| Analytics | Charts and spending trends over time                                  | Planned     |
+| Page      | What it does                                                              | Status  |
+|-----------|---------------------------------------------------------------------------|---------|
+| Log in    | Register an account and log in. Each user sees only their own data        | Working |
+| Home      | Income, spending, and net for the current month, plus recent transactions | Working |
+| Import    | Upload a CSV or Excel file and turn it into transactions                  | Planned |
+| Analytics | Charts and spending trends over time                                      | Planned |
 
 ## Requirements
 
 - Python 3.11 or newer
-- PostgreSQL, running locally or reachable over the network
-- *(Optional, for importing images and scanned PDFs later)*
-  [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) and
-  [Poppler](https://poppler.freedesktop.org/), which `pytesseract` and `pdf2image` need
+
+Nothing else: SQLite is built into Python.
 
 ## Getting started
 
@@ -37,38 +35,27 @@ venv\Scripts\activate            # Windows (PowerShell)
 pip install -r requirements.txt
 ```
 
-### 2. Create the database
-
-Create an empty Postgres database:
-
-```bash
-createdb budgeapp
-```
-
-The app creates the tables itself the first time it starts.
-
-### 3. Configure the connection
-
-Copy the example env file and put your credentials in it:
-
-```powershell
-copy .env.example .env           # Windows
-# cp .env.example .env           # macOS / Linux
-```
-
-```ini
-DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/budgeapp
-```
-
-`.env` is in `.gitignore`, so your credentials won't be committed.
-
-### 4. Run the app
+### 2. Run the app
 
 ```bash
 streamlit run app.py
 ```
 
 Streamlit opens the app in your browser, at http://localhost:8501 by default.
+
+The first time it starts, the app creates the database file, `budgeapp.db`, in the project
+folder, along with its tables. You don't need to create anything yourself. The file is in
+`.gitignore`, so your data stays on your machine. Delete it to start over with an empty database.
+
+### Using PostgreSQL instead (optional)
+
+Copy `.env.example` to `.env` and set `DATABASE_URL` to your Postgres database:
+
+```ini
+DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/budgeapp
+```
+
+`.env` is in `.gitignore`, so your credentials won't be committed.
 
 ## Project layout
 
@@ -82,7 +69,7 @@ app_pages/              One file per page (UI only)
 budgeapp/               Backend package (no Streamlit code)
   db/
     models.py           ORM models: User, Transaction
-    connection.py       Engine, get_session(), init_db(); reads DATABASE_URL from .env
+    connection.py       Engine, get_session(), init_db(); SQLite by default, or DATABASE_URL
     repositories.py     UserRepo (register, log in) and TransactionRepo query helpers
   auth.py               Password hashing
   pipeline/             Import pipeline (in progress)
@@ -125,4 +112,4 @@ ruff check .        # lint
 ruff format .       # format
 ```
 
-The tests use an in-memory SQLite database, so you don't need Postgres to run them.
+The tests use an in-memory SQLite database, so they never touch your real data.

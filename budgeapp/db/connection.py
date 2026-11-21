@@ -1,6 +1,9 @@
 """Database engine and session setup.
 
-Reads DATABASE_URL from .env, e.g.
+By default the app uses a SQLite file, budgeapp.db, in the project folder. It is created
+automatically, tables included, the first time the app starts.
+
+To use a different database, set DATABASE_URL in .env, e.g.
 postgresql+psycopg://USER:PASSWORD@localhost:5432/budgeapp
 """
 
@@ -10,7 +13,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from budgeapp.db.models import Base
@@ -18,20 +21,31 @@ from budgeapp.db.models import Base
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError(
-        "DATABASE_URL is not set. Copy .env.example to .env and fill in your Postgres credentials."
-    )
 
-# pool_pre_ping checks a pooled connection is still alive before using it,
-# so a Postgres restart doesn't cause errors in a long-running Streamlit server.
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+def _database_url() -> str:
+    url = make_url(os.getenv("DATABASE_URL") or "sqlite:///budgeapp.db")
+    # Resolve a relative SQLite path against the project folder, so the same file is used
+    # no matter which folder `streamlit run` is started from.
+    if url.get_backend_name() == "sqlite" and url.database and url.database != ":memory:":
+        path = Path(url.database)
+        if not path.is_absolute():
+            url = url.set(database=str(PROJECT_ROOT / path))
+    return url.render_as_string(hide_password=False)
+
+
+DATABASE_URL = _database_url()
+
+# SQLite: Streamlit runs each session on its own thread, so let connections be shared.
+# Others: pool_pre_ping checks a pooled connection is still alive before using it.
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
 def init_db() -> None:
-    """Create any tables that don't exist yet."""
+    """Create the database file (for SQLite) and any tables that don't exist yet."""
     Base.metadata.create_all(engine)
 
 
